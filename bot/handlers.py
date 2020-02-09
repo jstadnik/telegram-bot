@@ -18,6 +18,8 @@ def show_data(update, context):
     for key, item in context.user_data.get("known", {}).items():
         data.append(f"{key}: {item}")
     update.message.reply_text("This is what I know:\n" + "\n".join(data))
+    # Return none for state to not change
+    return None
 
 
 def get_reply(update):
