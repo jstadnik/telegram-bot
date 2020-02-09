@@ -1,15 +1,15 @@
 from telegram.ext import CommandHandler, MessageHandler, Filters, ConversationHandler
 import logging
 
+from bot.constants import LEGIT_REPLIES
+from bot.utils import process_reply, get_answer
+
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger()
 
 TYPE, COLOR, CHECK_ANSWER = range(3)
-YES_REPLIES = ["yes", "yeah", "yup", "Yes", "Yeah", "Yup"]
-NO_REPLIES = ["no", "nope", "nah", "No", "Nope", "Nah"]
-LEGIT_REPLIES = YES_REPLIES + NO_REPLIES
 
 
 def show_data(update, context):
@@ -21,10 +21,7 @@ def show_data(update, context):
 
 
 def get_reply(update):
-    reply = update.message.text
-    if reply in YES_REPLIES:
-        return True
-    return False
+    return process_reply(update.message.text)
 
 
 def start(update, context):
@@ -49,19 +46,9 @@ def process_type(update, context):
 
 
 def process_color(update, context):
-    brown = get_reply(update)
-    animal = context.user_data["known"]["animal"]
-    if brown:
-        if animal:
-            answer = "horse"
-        else:
-            answer = "table"
-    else:
-        if animal:
-            answer = "frog"
-        else:
-            answer = "pencil"
-    update.message.reply_text(f"Is it {answer}?")
+    context.user_data["known"]["brown"] = get_reply(update)
+    answer = get_answer(context.user_data["known"])
+    update.message.reply_text(f"Is it a {answer}?")
     return CHECK_ANSWER
 
 
