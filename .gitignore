@@ -1,0 +1,5 @@
+#Do not expose secret token
+bot/token.py
+
+#Python stuff
+__pycache__
