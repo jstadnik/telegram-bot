@@ -1,6 +1,6 @@
 from telegram.ext import CommandHandler, MessageHandler, Filters, ConversationHandler
 
-TYPE, COLOR = range(2)
+TYPE, COLOR, CHECK_ANSWER = range(3)
 YES_REPLIES = ['yes', 'yeah', 'yup', 'Yes', 'Yeah', 'Yup']
 NO_REPLIES = ['no', 'nope', 'nah', 'No', 'Nope', 'Nah']
 LEGIT_REPLIES = YES_REPLIES + NO_REPLIES
@@ -35,6 +35,15 @@ def process_color(update, context):
         else:
             answer = 'pencil'
     update.message.reply_text(f"Is it {answer}?")
+    return CHECK_ANSWER
+
+
+def check_answer(update, context):
+    if get_reply(update) is True:
+        reaction = "Yay, I am a genius! "
+    else:
+        reaction = "This should never have happened. "
+    update.message.reply_text(reaction + "If you want to play again, type /start")
     return ConversationHandler.END
 
 
@@ -56,6 +65,7 @@ def setup(updater):
         states = {
             TYPE: [MessageHandler(Filters.text(LEGIT_REPLIES), process_type)], 
             COLOR: [MessageHandler(Filters.text(LEGIT_REPLIES), process_color)],
+            CHECK_ANSWER: [MessageHandler(Filters.text(LEGIT_REPLIES), check_answer)],
         },
         fallbacks=[CommandHandler('cancel', cancel), MessageHandler(Filters.text, unknown_message)],
         name="20qs",
