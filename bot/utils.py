@@ -44,13 +44,7 @@ def get_column_values(col):
 
 def get_choices(category):
     """Return possible options given the category of the question"""
-    if category == Category.TYPE:
-        return {"Animal", "Vegetable"}
-    elif category == Category.COLOR:
-        return {"Brown", "Orange", "Grey"}
-    else:
-        # TODO: Handle better
-        raise ValueError
+    return get_column_values(category.col())
 
 
 def get_question(category, partial):

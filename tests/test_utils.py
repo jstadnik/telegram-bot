@@ -1,6 +1,13 @@
 import pytest
 
-from bot.utils import parse, get_answer, get_choices, get_question, process_reply
+from bot.utils import (
+    parse,
+    get_answer,
+    get_choices,
+    get_question,
+    process_reply,
+    get_column_values,
+)
 from bot.constants import Category
 
 
@@ -38,8 +45,21 @@ def test_get_answer(data, expected):
 @pytest.mark.parametrize(
     "category,expected",
     [
+        (
+            Category.ITEM,
+            [
+                "Hamster",
+                "Fox",
+                "Elephant",
+                "Lizard",
+                "Mouse",
+                "Potato",
+                "Pea",
+                "Watermelon",
+                "Orange",
+            ],
+        ),
         (Category.TYPE, ["Animal", "Vegetable"]),
-        (Category.COLOR, ["Brown", "Orange", "Grey"]),
     ],
 )
 def test_get_choices(category, expected):
@@ -55,7 +75,7 @@ def test_get_choices(category, expected):
     [
         (Category.TYPE, {"Type": {"Vegetable": False}}, ["Animal"]),
         (Category.TYPE, {}, ["Animal", "Vegetable"]),
-        (Category.COLOR, {"Colour": {"Brown": False}}, ["Orange", "Grey"]),
+        (Category.COLOR, {"Colour": {"Brown": False}}, ["Orange", "Grey", "Green"]),
     ],
 )
 def test_get_question(category, partial, expected):
@@ -93,3 +113,31 @@ def test_process_reply(reply, user_data, category, expected_known, expected_part
     known, partial = process_reply(reply, user_data, category)
     assert known == expected_known
     assert partial == expected_partial
+
+
+@pytest.mark.parametrize(
+    "col,expected",
+    [
+        (
+            0,
+            [
+                "Hamster",
+                "Fox",
+                "Elephant",
+                "Lizard",
+                "Mouse",
+                "Potato",
+                "Pea",
+                "Watermelon",
+                "Orange",
+            ],
+        ),
+        (1, ["Animal", "Vegetable"]),
+    ],
+)
+def test_get_column_values(col, expected):
+    result = get_column_values(col)
+    for item in expected:
+        assert item in expected
+        result.remove(item)
+    assert len(result) == 0
