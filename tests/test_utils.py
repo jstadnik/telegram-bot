@@ -34,9 +34,9 @@ def test_parse(reply, expected):
 @pytest.mark.parametrize(
     "data,expected",
     [
-        ({"Type": "Animal", "Colour": "Brown"}, "Hamster"),
-        ({"Type": "Vegetable", "Colour": "Orange"}, "Orange"),
-        ({"Type": "Vegetable", "Colour": "Grey"}, -1),
+        ({"Type": "Animal", "Colour": "Brown", "Size": "Small"}, "Hamster"),
+        ({"Type": "Vegetable", "Colour": "Orange", "Size": "Medium"}, "Orange"),
+        ({"Type": "Vegetable", "Colour": "Grey", "Size": "Large"}, -1),
     ],
 )
 def test_get_answer(data, expected):

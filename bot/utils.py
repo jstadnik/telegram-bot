@@ -62,8 +62,9 @@ def get_answer(known):
         csv_reader = csv.reader(f, delimiter=",")
         for row in csv_reader:
             if (
-                row[1] == known[Category.TYPE.value]
-                and row[2] == known[Category.COLOR.value]
+                row[Category.TYPE.col()] == known[Category.TYPE.value]
+                and row[Category.COLOR.col()] == known[Category.COLOR.value]
+                and row[Category.SIZE.col()] == known[Category.SIZE.value]
             ):
                 return row[0]
     return -1

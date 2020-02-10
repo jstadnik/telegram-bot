@@ -2,14 +2,14 @@ from telegram.ext import CommandHandler, MessageHandler, Filters, ConversationHa
 import logging
 
 from bot.constants import LEGIT_REPLIES, Category
-from bot.utils import process_reply, get_answer, get_question, parse
+from bot.utils import process_reply, get_answer, get_question, parse, get_choices
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger()
 
-TYPE, COLOR, CHECK_ANSWER = range(3)
+TYPE, COLOR, SIZE, CHECK_ANSWER = range(4)
 
 
 def show_data(update, context):
@@ -23,12 +23,13 @@ def show_data(update, context):
 
 
 def start(update, context):
-    update.message.reply_text(
-        "Hi, I am a 20 questions bot! Nice to meet you.\n\n"
-        "To start a new game type /newgame\n"
-        "To stop talking to me type /cancel\n"
-        "To see these instructions again, type /start\n"
-    )
+    reply_text = "Hi, I am a 20 questions bot! Nice to meet you.\n\n"
+    reply_text += "You can choose from the following items:\n\n"
+    reply_text += "\n".join(list(get_choices(Category.ITEM)))
+    reply_text += "\n\nTo start a new game, type /newgame\n"
+    reply_text += "To stop talking to me, type /cancel\n"
+    reply_text += "To see these instructions again, type /start"
+    update.message.reply_text(reply_text)
 
 
 def ask_question(update, context, category):
@@ -36,7 +37,7 @@ def ask_question(update, context, category):
     and persist the question object to user_data"""
     question_object = get_question(category, context.user_data["partial"])
     context.user_data["question_object"] = question_object
-    update.message.reply_text(f"Is it {question_object}?")
+    update.message.reply_text(f"Is it {question_object.lower()}?")
 
 
 def new_game(update, context):
@@ -59,7 +60,9 @@ def process_type(update, context):
         ask_question(update, context, Category.COLOR)
         return COLOR
     else:
-        ask_question(update, context, Category.COLOR)
+        # There's only two type options so this
+        # path should never get exacuted with data as is
+        ask_question(update, context, Category.TYPE)
         return TYPE
 
 
@@ -70,18 +73,32 @@ def process_color(update, context):
     context.user_data["known"] = known
     context.user_data["partial"][Category.COLOR.value] = partial
     if Category.COLOR.value in known:
-        answer = get_answer(known)
-        if answer == -1:
-            update.message.reply_text(
-                "You cheated! This is not a valid item. " "Game over"
-            )
-            return ConversationHandler.END
-        else:
-            update.message.reply_text(f"Is it {answer}")
-            return CHECK_ANSWER
+        ask_question(update, context, Category.SIZE)
+        return SIZE
     else:
         ask_question(update, context, Category.COLOR)
         return COLOR
+
+
+def process_size(update, context):
+    known, partial = process_reply(
+        update.message.text, context.user_data, Category.SIZE
+    )
+    context.user_data["known"] = known
+    context.user_data["partial"][Category.SIZE.value] = partial
+    if Category.SIZE.value in known:
+        answer = get_answer(known)
+        if answer == -1:
+            update.message.reply_text(
+                "You cheated! This is not a valid item. Game over."
+            )
+            return ConversationHandler.END
+        else:
+            update.message.reply_text(f"Is it {answer.lower()}?")
+            return CHECK_ANSWER
+    else:
+        ask_question(update, context, Category.SIZE)
+        return SIZE
 
 
 def check_answer(update, context):
@@ -106,7 +123,7 @@ def unknown_message(update, context):
 
 def error(update, context):
     update.message.reply_text(
-        "I seem to have gotten myself into a state..."
+        "I seem to have gotten myself into a state... "
         "Don't worry, the error will DEFINITELY be looked into by someone.\n\n"
         "Looks like you'll have to start a new game in the mean time, though, sorry :("
     )
@@ -122,6 +139,7 @@ def setup(updater):
         states={
             TYPE: [MessageHandler(Filters.text(LEGIT_REPLIES), process_type)],
             COLOR: [MessageHandler(Filters.text(LEGIT_REPLIES), process_color)],
+            SIZE: [MessageHandler(Filters.text(LEGIT_REPLIES), process_size)],
             CHECK_ANSWER: [MessageHandler(Filters.text(LEGIT_REPLIES), check_answer)],
         },
         fallbacks=[
