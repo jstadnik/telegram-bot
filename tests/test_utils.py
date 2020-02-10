@@ -27,8 +27,8 @@ def test_parse(reply, expected):
 @pytest.mark.parametrize(
     "data,expected",
     [
-        ({"Animal": True, "Brown": True}, "horse"),
-        ({"Animal": False, "Brown": True}, "table"),
+        ({"Type": "Animal", "Colour": "Brown"}, "Hamster"),
+        ({"Type": "Vegetable", "Colour": "Orange"}, "Orange"),
     ],
 )
 def test_get_answer(data, expected):

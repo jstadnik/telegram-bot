@@ -28,10 +28,11 @@ def process_reply(reply, user_data, category):
             known[category.value] = last_one_left
     return known, partial
 
+
 def get_column_values(col):
     all_values = set()
     with open(FILEPATH) as f:
-        csv_reader = csv.reader(f, delimiter=',')
+        csv_reader = csv.reader(f, delimiter=",")
         lc = -1
         for row in csv_reader:
             lc += 1
@@ -39,6 +40,7 @@ def get_column_values(col):
                 continue
             all_values.add(row[col])
     return all_values
+
 
 def get_choices(category):
     """Return possible options given the category of the question"""
