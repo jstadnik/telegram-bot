@@ -1,8 +1,8 @@
 from telegram.ext import CommandHandler, MessageHandler, Filters, ConversationHandler
 import logging
 
-from bot.constants import LEGIT_REPLIES
-from bot.utils import process_reply, get_answer
+from bot.constants import LEGIT_REPLIES, Category
+from bot.utils import process_reply, get_answer, get_question, parse
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -22,10 +22,6 @@ def show_data(update, context):
     return None
 
 
-def get_reply(update):
-    return process_reply(update.message.text)
-
-
 def start(update, context):
     update.message.reply_text(
         "Hi, I am a 20 questions bot! Nice to meet you.\n\n"
@@ -35,31 +31,63 @@ def start(update, context):
     )
 
 
+def ask_question(update, context, category):
+    """Ask a question in a given category
+    and persist the question object to user_data"""
+    question_object = get_question(category, context.user_data["partial"])
+    context.user_data["question_object"] = question_object
+    update.message.reply_text(f"Is it {question_object}?")
+
+
 def new_game(update, context):
+    # Clear user data to start anew
     context.user_data["known"] = {}
-    update.message.reply_text("Is it an animal?")
+    context.user_data["partial"] = {}
+
+    # Start game with first question
+    ask_question(update, context, Category.TYPE)
     return TYPE
 
 
 def process_type(update, context):
-    context.user_data["known"]["animal"] = get_reply(update)
-    update.message.reply_text("Is it brown?")
-    return COLOR
+    known, partial = process_reply(
+        update.message.text, context.user_data, Category.TYPE
+    )
+    context.user_data["known"] = known
+    context.user_data["partial"][Category.TYPE.value] = partial
+    if Category.TYPE.value in known:
+        ask_question(update, context, Category.COLOR)
+        return COLOR
+    else:
+        ask_question(update, context, Category.COLOR)
+        return TYPE
 
 
 def process_color(update, context):
-    context.user_data["known"]["brown"] = get_reply(update)
-    answer = get_answer(context.user_data["known"])
-    update.message.reply_text(f"Is it a {answer}?")
-    return CHECK_ANSWER
+    known, partial = process_reply(
+        update.message.text, context.user_data, Category.COLOR
+    )
+    context.user_data["known"] = known
+    context.user_data["partial"][Category.COLOR.value] = partial
+    if Category.COLOR.value in known:
+        answer = get_answer(known)
+        if answer == -1:
+            update.message.reply_text("You cheated! This is not a valid item.")
+            return ConversationHandler.END
+        else:
+            update.message.reply_text(f"Is it {answer}")
+            return CHECK_ANSWER
+    else:
+        ask_question(update, context, Category.COLOR)
+        return COLOR
 
 
 def check_answer(update, context):
-    if get_reply(update) is True:
-        reaction = "Yay, I am a genius! "
+    if parse(update.message.text) is True:
+        reaction = "Yay, I am a genius! If "
     else:
-        reaction = "This should never have happened. "
-    update.message.reply_text(reaction + "If you want to play again, type /newgame")
+        reaction = "I am wrong, this should never have happened. But if "
+    update.message.reply_text(reaction + "you want to play again, type /newgame")
     return ConversationHandler.END
 
 

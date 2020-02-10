@@ -1,7 +1,8 @@
-from bot.constants import YES_REPLIES, NO_REPLIES
+import random
+from bot.constants import YES_REPLIES, NO_REPLIES, Category
 
 
-def process_reply(reply):
+def parse(reply):
     if reply in YES_REPLIES:
         return True
     elif reply in NO_REPLIES:
@@ -10,16 +11,56 @@ def process_reply(reply):
     return False
 
 
-def get_answer(data):
-    is_animal = data["animal"]
-    is_brown = data["brown"]
-    if is_animal:
-        if is_brown:
-            return "horse"
-        else:
-            return "frog"
+def process_reply(reply, user_data, category):
+    reply_value = parse(reply)
+    known = user_data["known"]
+    partial = user_data["partial"].get(category.value, {})
+    question_object = user_data["question_object"]
+    partial[question_object] = reply_value
+    if reply_value is True:
+        known[category.value] = question_object
     else:
-        if is_brown:
-            return "table"
-        else:
-            return "pencil"
+        available_choices = get_choices(category)
+        if len(partial.keys()) == len(available_choices) - 1:
+            # All the other answers are negative so it must be this one
+            last_one_left = (available_choices - set(partial.keys())).pop()
+            known[category.value] = last_one_left
+    return known, partial
+
+
+def get_choices(category):
+    """Return possible options given the category of the question"""
+    if category == Category.TYPE:
+        return {"Animal", "Vegetable"}
+    elif category == Category.COLOR:
+        return {"Brown", "Orange", "Grey"}
+    else:
+        # TODO: Handle better
+        raise ValueError
+
+
+def get_question(category, partial):
+    """Make the game more interesting by randomizing the order of asking questions"""
+    available_choices = get_choices(category)
+    if category.value in partial:
+        for key in partial[category.value].keys():
+            # This has already been asked
+            available_choices.remove(key)
+    return random.choice(list(available_choices))
+
+
+def get_answer(known):
+    data = [
+        ["Hamster", "Animal", "Brown"],
+        ["Fox", "Animal", "Orange"],
+        ["Elephant", "Animal", "Grey"],
+        ["Potato", "Vegetable", "Brown"],
+        ["Orange", "Vegetable", "Orange"],
+    ]
+    for row in data:
+        if (
+            row[1] == known[Category.TYPE.value]
+            and row[2] == known[Category.COLOR.value]
+        ):
+            return row[0]
+    return -1

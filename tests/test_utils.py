@@ -1,11 +1,95 @@
 import pytest
 
-from bot.utils import process_reply, get_answer
+from bot.utils import parse, get_answer, get_choices, get_question, process_reply
+from bot.constants import Category
 
-@pytest.mark.parametrize("reply,expected", [('yes', True), ('yeah', True), ('yup', True), ('Yes', True), ('Yeah', True), ('Yup', True), ('No', False), ('Nope', False), ('no', False), ('nah', False), ('something else', False)])
-def test_process_reply(reply, expected):
-    assert process_reply(reply) == expected
 
-@pytest.mark.parametrize("data,expected", [({'animal': True, 'brown': True}, 'horse'), ({'animal': False, 'brown': True}, 'table')])
+@pytest.mark.parametrize(
+    "reply,expected",
+    [
+        ("yes", True),
+        ("yeah", True),
+        ("yup", True),
+        ("Yes", True),
+        ("Yeah", True),
+        ("Yup", True),
+        ("No", False),
+        ("Nope", False),
+        ("no", False),
+        ("nah", False),
+        ("something else", False),
+    ],
+)
+def test_parse(reply, expected):
+    assert parse(reply) == expected
+
+
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        ({"Animal": True, "Brown": True}, "horse"),
+        ({"Animal": False, "Brown": True}, "table"),
+    ],
+)
 def test_get_answer(data, expected):
     assert get_answer(data) == expected
+
+
+@pytest.mark.parametrize(
+    "category,expected",
+    [
+        (Category.TYPE, ["Animal", "Vegetable"]),
+        (Category.COLOR, ["Brown", "Orange", "Grey"]),
+    ],
+)
+def test_get_choices(category, expected):
+    choices = get_choices(category)
+    for item in expected:
+        assert item in expected
+        choices.remove(item)
+    assert len(choices) == 0
+
+
+@pytest.mark.parametrize(
+    "category,partial,expected",
+    [
+        (Category.TYPE, {"Type": {"Vegetable": False}}, ["Animal"]),
+        (Category.TYPE, {}, ["Animal", "Vegetable"]),
+        (Category.COLOR, {"Colour": {"Brown": False}}, ["Orange", "Grey"]),
+    ],
+)
+def test_get_question(category, partial, expected):
+    question = get_question(category, partial)
+    assert question in expected
+
+
+@pytest.mark.parametrize(
+    "reply,user_data,category,expected_known,expected_partial",
+    [
+        (
+            "yes",
+            {"question_object": "Animal", "partial": {}, "known": {}},
+            Category.TYPE,
+            {"Type": "Animal"},
+            {"Animal": True},
+        ),
+        (
+            "no",
+            {"question_object": "Vegetable", "partial": {}, "known": {}},
+            Category.TYPE,
+            {"Type": "Animal"},
+            {"Vegetable": False},
+        ),
+        (
+            "no",
+            {"question_object": "Animal", "partial": {}, "known": {}},
+            Category.TYPE,
+            {"Type": "Vegetable"},
+            {"Animal": False},
+        ),
+    ],
+)
+def test_process_reply(reply, user_data, category, expected_known, expected_partial):
+    known, partial = process_reply(reply, user_data, category)
+    assert known == expected_known
+    assert partial == expected_partial
