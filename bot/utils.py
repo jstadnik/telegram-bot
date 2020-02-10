@@ -58,17 +58,12 @@ def get_question(category, partial):
 
 
 def get_answer(known):
-    data = [
-        ["Hamster", "Animal", "Brown"],
-        ["Fox", "Animal", "Orange"],
-        ["Elephant", "Animal", "Grey"],
-        ["Potato", "Vegetable", "Brown"],
-        ["Orange", "Vegetable", "Orange"],
-    ]
-    for row in data:
-        if (
-            row[1] == known[Category.TYPE.value]
-            and row[2] == known[Category.COLOR.value]
-        ):
-            return row[0]
+    with open(FILEPATH) as f:
+        csv_reader = csv.reader(f, delimiter=",")
+        for row in csv_reader:
+            if (
+                row[1] == known[Category.TYPE.value]
+                and row[2] == known[Category.COLOR.value]
+            ):
+                return row[0]
     return -1

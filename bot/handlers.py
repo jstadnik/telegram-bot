@@ -72,7 +72,9 @@ def process_color(update, context):
     if Category.COLOR.value in known:
         answer = get_answer(known)
         if answer == -1:
-            update.message.reply_text("You cheated! This is not a valid item.")
+            update.message.reply_text(
+                "You cheated! This is not a valid item. " "Game over"
+            )
             return ConversationHandler.END
         else:
             update.message.reply_text(f"Is it {answer}")
