@@ -1,5 +1,6 @@
 import random
-from bot.constants import YES_REPLIES, NO_REPLIES, Category
+import csv
+from bot.constants import YES_REPLIES, NO_REPLIES, FILEPATH, Category
 
 
 def parse(reply):
@@ -27,6 +28,17 @@ def process_reply(reply, user_data, category):
             known[category.value] = last_one_left
     return known, partial
 
+def get_column_values(col):
+    all_values = set()
+    with open(FILEPATH) as f:
+        csv_reader = csv.reader(f, delimiter=',')
+        lc = -1
+        for row in csv_reader:
+            lc += 1
+            if lc == 0:
+                continue
+            all_values.add(row[col])
+    return all_values
 
 def get_choices(category):
     """Return possible options given the category of the question"""
