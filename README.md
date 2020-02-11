@@ -9,7 +9,7 @@ To run locally, clone repository; then with python 3.6+ run
 ```
 pip install -r requirements.txt
 ```
-You then have two options: 
+You then have two options:
 
 1) Enter token by creating file
 
@@ -43,3 +43,4 @@ Run `clean.sh` to clean up code before committing.
  - Improve flow of conversation, accept all the answers _containing_ "yes", "Nah", etc
  - Design a "least questions" algorithm
  - Add better tests
+ - Add mypy type checking

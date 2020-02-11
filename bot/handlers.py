@@ -33,8 +33,10 @@ def start(update, context):
 
 
 def ask_question(update, context, category):
-    """Ask a question in a given category
-    and persist the question object to user_data"""
+    """
+    Ask a question in a given category and persist the question object to user_data.
+    The question object indicates what the user answered yes/no to.
+    """
     question_object = get_question(category, context.user_data["partial"])
     context.user_data["question_object"] = question_object
     update.message.reply_text(f"Is it {question_object.lower()}?")
@@ -57,6 +59,7 @@ def process_type(update, context):
     context.user_data["known"] = known
     context.user_data["partial"][Category.TYPE.value] = partial
     if Category.TYPE.value in known:
+        # We now know the type, so proceed to colour
         ask_question(update, context, Category.COLOR)
         return COLOR
     else:
@@ -73,9 +76,11 @@ def process_color(update, context):
     context.user_data["known"] = known
     context.user_data["partial"][Category.COLOR.value] = partial
     if Category.COLOR.value in known:
+        # We know the colour so proceed to size
         ask_question(update, context, Category.SIZE)
         return SIZE
     else:
+        # Still unsure about colour so keep asking
         ask_question(update, context, Category.COLOR)
         return COLOR
 
@@ -87,6 +92,8 @@ def process_size(update, context):
     context.user_data["known"] = known
     context.user_data["partial"][Category.SIZE.value] = partial
     if Category.SIZE.value in known:
+        # Size is the last stage, so if we know the size,
+        # we know everything and can proceed to fetching the answer
         answer = get_answer(known)
         if answer == -1:
             update.message.reply_text(
@@ -132,6 +139,60 @@ def error(update, context):
 
 
 def setup(updater):
+    """
+    ConversationHandler based implementation.
+
+    Each game has a rigid state progression. At each step the game either:
+    stays in the same state, if it hasn't figured out the answer to that category
+    proceeds to next state, when it has
+    Additionally
+    /newgame discards any game progress and resets state to TYPE
+    /cancel exits the conversation flow completely
+    The stages are as follows:
+    TYPE - getting the type of the object
+    COLOR - getting the color of the object
+    SIZE - getting the size of the object
+    CHECK_ANSWER - confirming the validity of the answer and exit game
+
+    The updater is equipped with a "persistent" dictionary-state of the form:
+    question_object: string -- last thing the bot asked about
+    known: Dict -- keys of each category are added at the completion of a stage,
+            e.g. "Colour: Green", when the COLOR stage is completed.
+            Example (at the answer stage):
+            known = {
+                "Type": "Animal",
+                "Colour": "Brown"
+                "Size": "Small"
+            }
+    partial: Dict of Dicts -- records user replies naively,
+            used to keep track of questions asked during each stage,
+            to avoid repeating the same questions.
+            Example (halfway through the COLOR stage):
+            partial = {
+                "Type": {"Animal": True},
+                "Colour": {"Green": False}
+            }
+            Tells us it's an animal that is not green.
+    After a few more questions in the color stage,
+    we should have a user_data looking something like this:
+    >>> {
+        "question_object": "Orange",
+        "known": {"Type": "Animal", "Colour": "Brown"},
+        "partial": {
+            "Type": {"Animal": True},
+            "Colour": {"Green": False, "Grey": False, "Orange": False}
+        }
+    }
+    The above tells us the last question the bot asked was
+    "Is it orange?" (from question_object)
+    To which the user replied negatively.
+
+    Earlier, the user also answered positively to "Is it animal?",
+    And negatively to "Is it green?" and "Is it grey?". (from partial)
+
+    Since it's not green, grey or orange, it must be brown,
+    which the program inferred. (as recorded in known)
+    """
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(

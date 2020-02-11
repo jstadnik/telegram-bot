@@ -9,6 +9,8 @@ def parse(reply):
     elif reply in NO_REPLIES:
         return False
     # TODO: Add handling for rogue response
+    # Shouldn't really happen as only replies in YES_REPLIES and NO_REPLIES
+    # Are allowed through by the ConversationHandler
     return False
 
 
@@ -19,6 +21,9 @@ def process_reply(reply, user_data, category):
     question_object = user_data["question_object"]
     partial[question_object] = reply_value
     if reply_value is True:
+        # Only one value can describe the item in a given category
+        # So if the user answered "yes", then we know this category
+        # is equal to the question object
         known[category.value] = question_object
     else:
         available_choices = get_choices(category)
@@ -30,6 +35,9 @@ def process_reply(reply, user_data, category):
 
 
 def get_column_values(col):
+    """
+    Get all the distinct values in a given column of a csv file
+    """
     all_values = set()
     with open(FILEPATH) as f:
         csv_reader = csv.reader(f, delimiter=",")
@@ -37,6 +45,7 @@ def get_column_values(col):
         for row in csv_reader:
             lc += 1
             if lc == 0:
+                # Ignore the first line, it's titles, not values
                 continue
             all_values.add(row[col])
     return all_values
@@ -48,7 +57,11 @@ def get_choices(category):
 
 
 def get_question(category, partial):
-    """Make the game more interesting by randomizing the order of asking questions"""
+    """
+    Make the game more interesting by randomizing the order of asking questions.
+    Collect the possible values, and filter out those already asked, which are present
+    in the "partial".
+    """
     available_choices = get_choices(category)
     if category.value in partial:
         for key in partial[category.value].keys():
@@ -58,6 +71,10 @@ def get_question(category, partial):
 
 
 def get_answer(known):
+    """
+    Return item that matches on all three fields,
+    or indicate item as described does not exist
+    """
     with open(FILEPATH) as f:
         csv_reader = csv.reader(f, delimiter=",")
         for row in csv_reader:
