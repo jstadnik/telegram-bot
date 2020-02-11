@@ -1,7 +1,6 @@
 # telegram-bot
 Simple implementation of telegram-bot-based 20 Questions game using python.  
 Current master implementation can be chatted to at Joanna20QsBot (hosted on AWS EC2)  
-All `.git` etc dirs on branch `all-inclusive`  
 
 ## Test locally
 

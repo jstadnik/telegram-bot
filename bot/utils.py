@@ -19,7 +19,10 @@ def process_reply(reply, user_data, category):
     known = user_data["known"]
     partial = user_data["partial"].get(category.value, {})
     question_object = user_data["question_object"]
+    # Save the user reply as is
     partial[question_object] = reply_value
+
+    # Check if value is now known
     if reply_value is True:
         # Only one value can describe the item in a given category
         # So if the user answered "yes", then we know this category
