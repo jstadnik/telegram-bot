@@ -1,9 +1,10 @@
 import random
 import csv
+from typing import Dict, Set, Optional
 from bot.constants import YES_REPLIES, NO_REPLIES, FILEPATH, Category
 
 
-def parse(reply):
+def parse(reply: str) -> bool:
     if reply in YES_REPLIES:
         return True
     elif reply in NO_REPLIES:
@@ -14,11 +15,11 @@ def parse(reply):
     return False
 
 
-def process_reply(reply, user_data, category):
+def process_reply(reply: str, user_data: Dict, category: Category):
     reply_value = parse(reply)
     known = user_data["known"]
     partial = user_data["partial"].get(category.value, {})
-    question_object = user_data["question_object"]
+    question_object: str = user_data["question_object"]
     # Save the user reply as is
     partial[question_object] = reply_value
 
@@ -37,7 +38,7 @@ def process_reply(reply, user_data, category):
     return known, partial
 
 
-def get_column_values(col):
+def get_column_values(col: int) -> Set[str]:
     """
     Get all the distinct values in a given column of a csv file
     """
@@ -54,12 +55,12 @@ def get_column_values(col):
     return all_values
 
 
-def get_choices(category):
+def get_choices(category: Category) -> Set[str]:
     """Return possible options given the category of the question"""
     return get_column_values(category.col())
 
 
-def get_question(category, partial):
+def get_question(category: Category, partial: Dict) -> str:
     """
     Make the game more interesting by randomizing the order of asking questions.
     Collect the possible values, and filter out those already asked, which are present
@@ -73,7 +74,7 @@ def get_question(category, partial):
     return random.choice(list(available_choices))
 
 
-def get_answer(known):
+def get_answer(known: Dict) -> Optional[str]:
     """
     Return item that matches on all three fields,
     or indicate item as described does not exist
@@ -87,4 +88,4 @@ def get_answer(known):
                 and row[Category.SIZE.col()] == known[Category.SIZE.value]
             ):
                 return row[0]
-    return -1
+    return None

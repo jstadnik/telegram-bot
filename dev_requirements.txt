@@ -18,6 +18,8 @@ future==0.18.2            # via python-telegram-bot
 importlib-metadata==1.5.0  # via pluggy, pytest
 mccabe==0.6.1             # via flake8
 more-itertools==8.2.0     # via pytest
+mypy-extensions==0.4.3    # via mypy
+mypy==0.761
 packaging==20.1           # via pytest
 pathspec==0.7.0           # via black
 pluggy==0.13.1            # via pytest
@@ -32,6 +34,7 @@ regex==2020.1.8           # via black
 six==1.14.0               # via cryptography, packaging
 toml==0.10.0              # via black
 tornado==6.0.3            # via python-telegram-bot
-typed-ast==1.4.1          # via black
+typed-ast==1.4.1          # via black, mypy
+typing-extensions==3.7.4.1  # via mypy
 wcwidth==0.1.8            # via pytest
 zipp==2.2.0               # via importlib-metadata

@@ -95,7 +95,7 @@ def process_size(update, context):
         # Size is the last stage, so if we know the size,
         # we know everything and can proceed to fetching the answer
         answer = get_answer(known)
-        if answer == -1:
+        if answer is None:
             update.message.reply_text(
                 "You cheated! This is not a valid item. Game over."
             )
