@@ -9,7 +9,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger()
 
-TYPE, COLOR, SIZE, CHECK_ANSWER = range(4)
+ASK_QUESTIONS, CHECK_ANSWER = range(2)
 
 
 def show_data(update, context):
@@ -32,12 +32,13 @@ def start(update, context):
     update.message.reply_text(reply_text)
 
 
-def ask_question(update, context, category):
+def ask_question(update, context):
     """
     Ask a question in a given category and persist the question object to user_data.
     The question object indicates what the user answered yes/no to.
     """
-    question_object = get_question(category, context.user_data["partial"])
+    question_category, question_object = get_question(context.user_data)
+    context.user_data["question_category"] = question_category
     context.user_data["question_object"] = question_object
     update.message.reply_text(f"Is it {question_object.lower()}?")
 
@@ -48,64 +49,27 @@ def new_game(update, context):
     context.user_data["partial"] = {}
 
     # Start game with first question
-    ask_question(update, context, Category.TYPE)
-    return TYPE
+    ask_question(update, context)
+    return ASK_QUESTIONS
 
 
-def process_type(update, context):
-    known, partial = process_reply(
-        update.message.text, context.user_data, Category.TYPE
-    )
+def process_reply_handler(update, context):
+    known, partial = process_reply(update.message.text, context.user_data)
+    # Make sure user_data definitely updated
     context.user_data["known"] = known
-    context.user_data["partial"][Category.TYPE.value] = partial
-    if Category.TYPE.value in known:
-        # We now know the type, so proceed to colour
-        ask_question(update, context, Category.COLOR)
-        return COLOR
+    context.user_data["partial"] = partial
+    answer = get_answer(known)
+    if answer:
+        update.message.reply_text(f"Is it {answer.lower()}?")
+        return CHECK_ANSWER
+    elif len(known) < 3:
+        ask_question(update, context)
+        return ASK_QUESTIONS
     else:
-        # There's only two type options so this
-        # path should never get exacuted with data as is
-        ask_question(update, context, Category.TYPE)
-        return TYPE
-
-
-def process_color(update, context):
-    known, partial = process_reply(
-        update.message.text, context.user_data, Category.COLOR
-    )
-    context.user_data["known"] = known
-    context.user_data["partial"][Category.COLOR.value] = partial
-    if Category.COLOR.value in known:
-        # We know the colour so proceed to size
-        ask_question(update, context, Category.SIZE)
-        return SIZE
-    else:
-        # Still unsure about colour so keep asking
-        ask_question(update, context, Category.COLOR)
-        return COLOR
-
-
-def process_size(update, context):
-    known, partial = process_reply(
-        update.message.text, context.user_data, Category.SIZE
-    )
-    context.user_data["known"] = known
-    context.user_data["partial"][Category.SIZE.value] = partial
-    if Category.SIZE.value in known:
-        # Size is the last stage, so if we know the size,
-        # we know everything and can proceed to fetching the answer
-        answer = get_answer(known)
-        if answer == -1:
-            update.message.reply_text(
-                "You cheated! This is not a valid item. Game over."
-            )
-            return ConversationHandler.END
-        else:
-            update.message.reply_text(f"Is it {answer.lower()}?")
-            return CHECK_ANSWER
-    else:
-        ask_question(update, context, Category.SIZE)
-        return SIZE
+        update.message.reply_text(
+            "Congratulations, you found a bug :( I do not have an item that matches this description"
+        )
+        return ConversationHandler.END
 
 
 def check_answer(update, context):
@@ -149,9 +113,7 @@ def setup(updater):
     /newgame discards any game progress and resets state to TYPE
     /cancel exits the conversation flow completely
     The stages are as follows:
-    TYPE - getting the type of the object
-    COLOR - getting the color of the object
-    SIZE - getting the size of the object
+    ASK_QUESTIONS - get questions
     CHECK_ANSWER - confirming the validity of the answer and exit game
 
     The updater is equipped with a "persistent" dictionary-state of the form:
@@ -198,9 +160,9 @@ def setup(updater):
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("newgame", new_game)],
         states={
-            TYPE: [MessageHandler(Filters.text(LEGIT_REPLIES), process_type)],
-            COLOR: [MessageHandler(Filters.text(LEGIT_REPLIES), process_color)],
-            SIZE: [MessageHandler(Filters.text(LEGIT_REPLIES), process_size)],
+            ASK_QUESTIONS: [
+                MessageHandler(Filters.text(LEGIT_REPLIES), process_reply_handler)
+            ],
             CHECK_ANSWER: [MessageHandler(Filters.text(LEGIT_REPLIES), check_answer)],
         },
         fallbacks=[
