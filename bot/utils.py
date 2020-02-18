@@ -78,13 +78,12 @@ def get_answer(known):
     Return item that matches on all three fields,
     or indicate item as described does not exist
     """
+    matching_items = []
     with open(FILEPATH) as f:
         csv_reader = csv.reader(f, delimiter=",")
         for row in csv_reader:
-            if (
-                row[Category.TYPE.col()] == known[Category.TYPE.value]
-                and row[Category.COLOR.col()] == known[Category.COLOR.value]
-                and row[Category.SIZE.col()] == known[Category.SIZE.value]
-            ):
-                return row[0]
-    return -1
+            if all(row[Category(cat).col()] == val for cat, val in known.items()):
+                matching_items.append(row[Category.ITEM.col()])
+    if len(matching_items) == 1:
+        return matching_items[0]
+    return None

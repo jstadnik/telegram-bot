@@ -36,7 +36,9 @@ def test_parse(reply, expected):
     [
         ({"Type": "Animal", "Colour": "Brown", "Size": "Small"}, "Hamster"),
         ({"Type": "Vegetable", "Colour": "Orange", "Size": "Medium"}, "Orange"),
-        ({"Type": "Vegetable", "Colour": "Grey", "Size": "Large"}, -1),
+        ({"Type": "Vegetable", "Colour": "Grey", "Size": "Large"}, None),
+        ({"Type": "Animal", "Colour": "Orange"}, "Fox"),
+        ({"Size": "Medium", "Colour": "Orange"}, None),
     ],
 )
 def test_get_answer(data, expected):
