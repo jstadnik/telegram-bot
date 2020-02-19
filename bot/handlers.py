@@ -2,7 +2,7 @@ from telegram.ext import CommandHandler, MessageHandler, Filters, ConversationHa
 import logging
 
 from bot.constants import LEGIT_REPLIES, Category
-from bot.utils import process_reply, get_answer, get_question, parse, get_choices
+from bot.utils import process_reply, get_answer, get_question, parse, get_items
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -24,8 +24,8 @@ def show_data(update, context):
 
 def start(update, context):
     reply_text = "Hi, I am a 20 questions bot! Nice to meet you.\n\n"
-    reply_text += "You can choose from the following items:\n\n"
-    reply_text += "\n".join(list(get_choices(Category.ITEM)))
+    reply_text += "You can choose to think of the following items:\n\n"
+    reply_text += "\n".join(list(get_items()))
     reply_text += "\n\nTo start a new game, type /newgame\n"
     reply_text += "To stop talking to me, type /cancel\n"
     reply_text += "To see these instructions again, type /start"
@@ -34,13 +34,27 @@ def start(update, context):
 
 def ask_question(update, context):
     """
-    Ask a question in a given category and persist the question object to user_data.
-    The question object indicates what the user answered yes/no to.
+    Ask a question in a given and persist the question object and category to user_data.
+    The question object indicates what the user answered yes/no to
+    (used when processing the reply)
     """
     question_category, question_object = get_question(context.user_data)
+    if not question_object:
+        # No more questions can be asked, but since we are in the ask question phase
+        # we didn't find an answer either an answer either
+        return found_bug(update, context)
     context.user_data["question_category"] = question_category
     context.user_data["question_object"] = question_object
     update.message.reply_text(f"Is it {question_object.lower()}?")
+    return ASK_QUESTIONS
+
+
+def found_bug(update, context):
+    update.message.reply_text(
+        "Congratulations, you found a bug :("
+        "I do not have an item that matches this description."
+    )
+    return ConversationHandler.END
 
 
 def new_game(update, context):
@@ -49,27 +63,21 @@ def new_game(update, context):
     context.user_data["partial"] = {}
 
     # Start game with first question
-    ask_question(update, context)
-    return ASK_QUESTIONS
+    return ask_question(update, context)
 
 
 def process_reply_handler(update, context):
-    known, partial = process_reply(update.message.text, context.user_data)
-    # Make sure user_data definitely updated
-    context.user_data["known"] = known
-    context.user_data["partial"] = partial
+    process_reply(update.message.text, context.user_data)
+    known = context.user_data["known"]
     answer = get_answer(known)
     if answer:
         update.message.reply_text(f"Is it {answer.lower()}?")
         return CHECK_ANSWER
-    elif len(known) < 3:
-        ask_question(update, context)
-        return ASK_QUESTIONS
+    elif len(known) < len(Category) - 1:
+        return ask_question(update, context)
     else:
-        update.message.reply_text(
-            "Congratulations, you found a bug :( I do not have an item that matches this description"
-        )
-        return ConversationHandler.END
+        # All the categories are known, but we don't have an answer
+        return found_bug(update, context)
 
 
 def check_answer(update, context):
@@ -93,6 +101,7 @@ def unknown_message(update, context):
 
 
 def error(update, context):
+    # Uncaught exceptions fallback
     update.message.reply_text(
         "I seem to have gotten myself into a state... "
         "Don't worry, the error will DEFINITELY be looked into by someone.\n\n"
@@ -113,7 +122,7 @@ def setup(updater):
     /newgame discards any game progress and resets state to TYPE
     /cancel exits the conversation flow completely
     The stages are as follows:
-    ASK_QUESTIONS - get questions
+    ASK_QUESTIONS - ask question from each category in turn
     CHECK_ANSWER - confirming the validity of the answer and exit game
 
     The updater is equipped with a "persistent" dictionary-state of the form:
@@ -135,9 +144,10 @@ def setup(updater):
                 "Colour": {"Green": False}
             }
             Tells us it's an animal that is not green.
-    After a few more questions in the color stage,
+    After a few more questions
     we should have a user_data looking something like this:
     >>> {
+        "question_category": "Colour"
         "question_object": "Orange",
         "known": {"Type": "Animal", "Colour": "Brown"},
         "partial": {

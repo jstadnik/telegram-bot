@@ -3,13 +3,11 @@ import pytest
 from bot.utils import (
     parse,
     get_answer,
-    get_choices,
+    get_items,
     get_question,
     process_reply,
-    get_column_values,
     get_possible_choices_for_question,
 )
-from bot.constants import Category
 
 
 @pytest.mark.parametrize(
@@ -46,30 +44,21 @@ def test_get_answer(data, expected):
     assert get_answer(data) == expected
 
 
-@pytest.mark.parametrize(
-    "category,expected",
-    [
-        (
-            Category.ITEM,
-            [
-                "Hamster",
-                "Fox",
-                "Elephant",
-                "Lizard",
-                "Mouse",
-                "Potato",
-                "Pea",
-                "Watermelon",
-                "Orange",
-            ],
-        ),
-        (Category.TYPE, ["Animal", "Vegetable"]),
-    ],
-)
-def test_get_choices(category, expected):
-    choices = get_choices(category)
+def test_get_items():
+    expected = [
+        "Hamster",
+        "Fox",
+        "Elephant",
+        "Lizard",
+        "Mouse",
+        "Potato",
+        "Pea",
+        "Watermelon",
+        "Orange",
+    ]
+    choices = get_items()
     for item in expected:
-        assert item in expected
+        assert item in choices
         choices.remove(item)
     assert len(choices) == 0
 
@@ -111,7 +100,6 @@ def test_get_question(user_data, expected):
             },
         ),
         ({"known": {"Colour": "Grey"}, "partial": {}}, {"Size": {"Small", "Large"}}),
-        ({"known": {"Type": "Animal", "Colour": "Brown"}, "partial": {"Colour": {"Green": False, "Grey": False, "Brown": True}, "Type": {"Animal": True}, "Size": {"Medium": False}}}, {}),
     ],
 )
 def test_get_possible_choices_for_question(user_data, expected):
@@ -156,37 +144,35 @@ def test_get_possible_choices_for_question(user_data, expected):
             {"Type": "Vegetable"},
             {"Type": {"Animal": False}},
         ),
+        (
+            "no",
+            {
+                "question_category": "Size",
+                "question_object": "Large",
+                "known": {"Colour": "Green"},
+                "partial": {"Colour": {"Green": True}},
+            },
+            {"Colour": "Green"},
+            {"Colour": {"Green": True}, "Size": {"Large": False}},
+        ),
+        (
+            "no",
+            {
+                "question_category": "Type",
+                "question_object": "Animal",
+                "known": {"Colour": "Green"},
+                "partial": {"Colour": {"Green": True}, "Size": {"Large": False}},
+            },
+            {"Colour": "Green", "Type": "Vegetable", "Size": "Small"},
+            {
+                "Type": {"Animal": False},
+                "Colour": {"Green": True},
+                "Size": {"Large": False},
+            },
+        ),
     ],
 )
 def test_process_reply(reply, user_data, expected_known, expected_partial):
     known, partial = process_reply(reply, user_data)
     assert known == expected_known
     assert partial == expected_partial
-
-
-@pytest.mark.parametrize(
-    "col,expected",
-    [
-        (
-            0,
-            [
-                "Hamster",
-                "Fox",
-                "Elephant",
-                "Lizard",
-                "Mouse",
-                "Potato",
-                "Pea",
-                "Watermelon",
-                "Orange",
-            ],
-        ),
-        (1, ["Animal", "Vegetable"]),
-    ],
-)
-def test_get_column_values(col, expected):
-    result = get_column_values(col)
-    for item in expected:
-        assert item in expected
-        result.remove(item)
-    assert len(result) == 0

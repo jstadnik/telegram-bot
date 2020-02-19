@@ -15,12 +15,17 @@ def parse(reply):
 
 
 def process_reply(reply, user_data):
+    """
+    This is where all the magic happens. Record the reply,
+    then check what we know based on the new information,
+    and update the user data accordingly
+    """
     reply_value = parse(reply)
     question_category = Category(user_data["question_category"])
     question_object = user_data["question_object"]
 
     # Save the user reply as is
-    if not question_category.value in user_data["partial"]:
+    if question_category.value not in user_data["partial"]:
         user_data["partial"][question_category.value] = {}
     user_data["partial"][question_category.value][question_object] = reply_value
 
@@ -30,36 +35,29 @@ def process_reply(reply, user_data):
         # So if the user answered "yes", then we know this category
         # is equal to the question object
         user_data["known"][question_category.value] = question_object
-    check_if_anything_known(user_data)
-    # Retruning anything for debugging purposes, really
+
+    last_len_known = -1
+    while last_len_known != len(user_data["known"]):
+        # Check for known values until the check does not discover anything new
+        last_len_known = len(user_data["known"])
+        check_if_anything_known(user_data)
+
+    # Retruning for testing purposes only, as dicts changed in place
     return user_data["known"], user_data["partial"]
 
-
-def get_column_values(col):
-    """
-    Get all the distinct values in a given column of a csv file
-    """
-    all_values = set()
-    with open(FILEPATH) as f:
-        csv_reader = csv.reader(f, delimiter=",")
-        lc = -1
-        for row in csv_reader:
-            lc += 1
-            if lc == 0:
-                # Ignore the first line, it's titles, not values
-                continue
-            all_values.add(row[col])
-    return all_values
-
-
-def get_choices(category):
-    """Return possible options given the category of the question"""
-    return get_column_values(category.col())
 
 def check_if_anything_known(user_data):
     get_possible_choices_for_question(user_data)
 
+
 def get_possible_choices_for_question(user_data):
+    """
+    Go through the CSV file and populate all the categories with the possibilities
+    still left, given the current data. Also automatically updates the "known" section,
+    if there is only one choice left. This is why this doubles as a helper fuction both
+    for obtaining the next question, as well as processing the information after
+    a user's reply.
+    """
     known = user_data["known"]
     partial = user_data["partial"]
     categories_not_known = []
@@ -98,6 +96,8 @@ def get_possible_choices_for_question(user_data):
         if len(options) == 1:
             user_data["known"][cat] = options.pop()
             to_del.append(cat)
+        elif len(options) == 0:
+            to_del.append(cat)
     for cat in to_del:
         del all_options[cat]
 
@@ -111,14 +111,16 @@ def get_question(user_data):
     in the "partial".
     """
     all_options = get_possible_choices_for_question(user_data)
+    if len(all_options) == 0:
+        return None, None
     category = random.choice(list(all_options.keys()))
     return category, random.choice(list(all_options[category]))
 
 
 def get_answer(known):
     """
-    Return item that matches on all three fields,
-    or indicate item as described does not exist
+    Return item that matches on all the existing fields,
+    if there is only one such item
     """
     matching_items = []
     with open(FILEPATH) as f:
@@ -129,3 +131,20 @@ def get_answer(known):
     if len(matching_items) == 1:
         return matching_items[0]
     return None
+
+
+def get_items():
+    """
+    Return all the possible items listed in the csv file
+    """
+    items = set()
+    with open(FILEPATH) as f:
+        csv_reader = csv.reader(f, delimiter=",")
+        lc = -1
+        for row in csv_reader:
+            lc += 1
+            if lc == 0:
+                # Ignore the first line, it's titles, not values
+                continue
+            items.add(row[Category.ITEM.col()])
+    return items
