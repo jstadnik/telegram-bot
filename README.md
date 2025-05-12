@@ -1,4 +1,9 @@
 # telegram-bot
+
+An unfinished assignment from a job application once upon a time that it is probably fine to make public by now as the company no longer really exists.
+
+## About
+
 Simple implementation of telegram-bot-based 20 Questions game using python.  
 Current master implementation can be chatted to at Joanna20QsBot (hosted on AWS EC2) 
 
